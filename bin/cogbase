@@ -1,0 +1,5 @@
+#!/usr/bin/env perl
+
+use lib 'lib';
+use CogBase::Command;
+CogBase::Command->new(@ARGV)->run();
