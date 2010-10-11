@@ -1,5 +1,5 @@
 package CogBase;
-use CogBase::Base -base;
+use CogBase::OO -base;
 
 use 5.008003;
 our $VERSION = '0.11';

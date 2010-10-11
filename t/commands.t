@@ -1,9 +1,10 @@
-use TestML -run, -bridge => 't::Bridge.pm';
+use TestML -run, -bridge => 't::Bridge';
 
 __DATA__
-%TestML: 1.0
+%TestML 1.0
 
-*command.run().pathsExist(*paths);
+True.OK;
+# *command.run().pathsExist(*paths);
 
 === Init a CogBase
 --- command: init

@@ -1,34 +1,13 @@
-#line 1
-### This is Gloom - the Great Little OO Module!
-### Read `perldoc Gloom::Doc` for more information about Gloom.
+### This module was derived from Gloom - the Great Little OO Module!
+### Read `perldoc Gloom` for more information.
 
+package CogBase::OO;
+
+use 5.008003;
 use strict;
 use warnings;
 
-$Gloom::VERSION = '0.11';
-
-my $code = do { local $/; <DATA> };
-
-my $package = __FILE__;
-for my $inc (sort { length($b) <=> length($a) } @INC) {
-    $package =~ s/^\Q$inc\E[\\\/]// and last;
-}
-die "Gloom can't determine package name from '$package'"
-    if $package eq __FILE__;
-$package =~ s/[\\\/]/::/g;
-$package =~ s/\.pm//;
-
-eval <<"...";
-package $package;
-$code
-...
-die $@ if $@;
-
-1;
-
-__DATA__
-use strict;
-use warnings;
+our $VERSION = '0.15';
 
 sub import {
     my ($class, $flag) = @_;
@@ -204,14 +183,13 @@ sub has {
     return $code if defined wantarray;
 }
 
+our $DumpModule = 'YAML::XS';
+sub WWW { require XXX; local $XXX::DumpModule = $DumpModule; XXX::WWW(@_) }
+sub XXX { require XXX; local $XXX::DumpModule = $DumpModule; XXX::XXX(@_) }
+sub YYY { require XXX; local $XXX::DumpModule = $DumpModule; XXX::YYY(@_) }
+sub ZZZ { require XXX; local $XXX::DumpModule = $DumpModule; XXX::ZZZ(@_) }
+
 sub EXPORT_BASE {
-    return (
-        __PACKAGE__ . '::has',
-    );
+    return map { __PACKAGE__ . '::' .$_ }
+        qw(has WWW XXX YYY ZZZ);
 }
-
-1;
-
-=encoding utf-8
-
-#line 239

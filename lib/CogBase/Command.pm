@@ -1,5 +1,5 @@
 package CogBase::Command;
-use CogBase::Base -base;
+use CogBase::OO -base;
 
 use Getopt::Long;
 use Cwd;
@@ -7,7 +7,7 @@ use File::Path;
 use Data::UUID;
 use Digest::MD5;
 use Convert::Base32;
-use IPC::Run();
+use Capture::Tiny qw(capture);
 
 has 'config';
 has 'args';
@@ -148,10 +148,12 @@ sub git_init {
 
 sub run_command {
     my $self = shift;
-    my ($in, $out, $err);
+    my @cmd = @_;
 
-    IPC::Run::run([@_], \$in, \$out, \$err, IPC::Run::timeout(10))
-      or die "Failed to run command: '${\ join(' ', @_)}': $?";
+    my ($out, $err) = capture {
+        system("@cmd") == 0
+          or die "Failed to run command: '${\ join(' ', @cmd)}': $?";
+    };
 }
 
 sub initial_config {
