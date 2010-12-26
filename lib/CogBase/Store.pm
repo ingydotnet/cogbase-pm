@@ -5,8 +5,6 @@ use Digest::MD5;
 use Convert::Base32;
 use IO::All;
 
-use XXX;
-
 has root => (is => 'ro', required => 1);
 has git => (is => 'ro', builder => sub {
     my $self = shift;
@@ -58,6 +56,12 @@ sub _uuid {
         ); 
         return $id if $id =~ /^((?:[A-Z][2-7]|[2-7][A-Z])..)(.*)/;
     }
+}
+
+sub _node_to_cog_text {
+}
+
+sub _cog_text_to_node {
 }
 
 sub add {
