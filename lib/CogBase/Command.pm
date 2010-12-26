@@ -1,19 +1,16 @@
 package CogBase::Command;
-use CogBase::OO -base;
+use Mouse;
 
 use Getopt::Long;
 use Cwd;
 use File::Path;
-use Data::UUID;
-use Digest::MD5;
-use Convert::Base32;
 use Capture::Tiny qw(capture);
 
-has 'config';
-has 'args';
-has 'command';
-has 'base';
-has 'home';
+has config => ( is => 'ro');
+has args => ( is => 'ro');
+has command => ( is => 'ro');
+has base => ( is => 'ro');
+has home => ( is => 'ro');
 
 my $options = [qw(base view file editor)];
 

@@ -21,14 +21,14 @@ WHAT IS COGBASE?
         * CogBase is a defined way to store and access data.
         * CogBase is not tied to an implementation.
         * A CogBase stores data as Nodes
-        * Every node has a UUID. Like: HCP4TKU4MJI7IS2DZTFFLXKB7M
-        * Every node id has an eternally unique short id. Like HCP4
+        * Every node has a UUID. Like: H4CPTKU4MJI7IS2DZTFFLXKB7M
+        * Every node id has an eternally unique short id. Like H4CP
         * Nodes have revisions.
         * Revisions are immutable. Once saved they never change.
         * Each revision has a revision number 1-n. Like 01.
         * Revision numbers are usually written with a leading 0.
-        * HCP4 is the tracking id. It refers to the latest revision.
-        * HCP407 is a reference to the 7th revision of HCP4.
+        * H4CP is the tracking id. It refers to the latest revision.
+        * H4CP07 is a reference to the 7th revision of H4CP.
         * Every node has a Type.
         * Every type has a description, called a Schema.
         * Schemas are saved as nodes in the cogbase.
