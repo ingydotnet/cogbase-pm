@@ -1,3 +1,4 @@
+use Test::More skip_all => 'not yet';
 use TestML -run, -bridge => 't::Bridge';
 
 __DATA__
