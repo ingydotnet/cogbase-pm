@@ -31,11 +31,10 @@ sub init {
     io("$root/cache")->mkdir or die;
     io->link("$root/cogbase")->symlink(".git");
 
-    my $uuid = $self->_uuid;
+    my $uuid = $self->new_uuid;
     io("$root/cogbase.yaml")->print(<<"...");
 cogbase: 0.0.1
 uuid: $uuid
-base_uri: http://127.0.0.1:1234/
 ...
 
     io("$root/.gitignore")->print(<<"...");
@@ -44,23 +43,7 @@ cogbase
 cache
 ...
 
-    $self->_git_cmd('init');
-}
-
-sub _git_cmd {
-    my ($self, $cmd, @args) = @_;
-    $self->git->$cmd(@args);
-}
-
-BEGIN { srand() }
-sub _uuid {
-    my $self = shift;
-    while (1) {
-        my $id = uc Convert::Base32::encode_base32(
-            join "", map { pack "S", int(rand(65536)) } 1..8
-        ); 
-        return $id if $id =~ /^((?:[A-Z][2-7]|[2-7][A-Z])..)(.*)/;
-    }
+    $self->git->init();
 }
 
 sub _node_to_text {
@@ -86,9 +69,16 @@ sub add {
     my $self = shift;
     my $type = shift;
     my $schema = $self->schemata->{$type} ||= $self->_get_schema_node($type);
-    my ($id, $uuid) = $self->new_id;
-    my $node = $schema->class->new( Id => $id, UUID => $uuid, Rev => 0,
-    Type => $type, @_, ); $self->write($node); return $node; }
+    my ($id, $uuid) = $self->new_id_pair;
+    my $node = $schema->class->new(
+        Id => $id,
+        UUID => $uuid,
+        Rev => 0,
+        Type => $type,
+        @_,
+    );
+    $self->write($node); return $node;
+}
 
 # retrieve a node object from an id. return undef if not found.
 sub get {
@@ -108,14 +98,36 @@ sub put {
     my $self = shift;
     my $node = shift;
     my $prev = $self->get($node->Id);
-    XXX $prev if not defined $prev->Rev;
     $node->Rev($prev->Rev + 1);
-    # bump rev number
     $self->lock;
     $self->write($node);
 #     $self->index($node);
     $self->commit($node);
     $self->unlock;
+}
+
+BEGIN { srand() }
+# Upper cased base32 128bit random number.
+sub new_uuid {
+    my $self = shift;
+    while (1) {
+        my $id = uc Convert::Base32::encode_base32(
+            join "", map { pack "S", int(rand(65536)) } 1..8
+        ); 
+        return $id if $id =~ /^(?:[A-Z][2-7]|[2-7][A-Z])/;
+    }
+}
+
+sub new_id_pair {
+    my $self = shift;
+    while (1) {
+        my $uuid = $self->new_uuid;
+        my $id = substr($uuid, 0, 4);
+        my $dir = $self->node_dir($id);
+        next if -e $dir;
+        io->dir($dir)->mkpath;
+        return ($id, $uuid);
+    }
 }
 
 sub read {
@@ -161,13 +173,18 @@ sub write {
 
 sub commit {
     my $self = shift; 
-    my $commit = shift; 
-    $ENV{GIT_AUTHOR_NAME} =
-        $ENV{GIT_COMMITTER_NAME} = $commit->{name};
-    $ENV{GIT_AUTHOR_EMAIL} =
-        $ENV{GIT_COMMITTER_EMAIL} = $commit->{email};
-    $ENV{GIT_AUTHOR_DATE} = $commit->{time};
-    $ENV{GIT_COMMITTER_DATE} = $commit->{time};
+    my $node = shift; 
+    $ENV{GIT_AUTHOR_EMAIL} = $ENV{GIT_COMMITTER_EMAIL} = '';
+    $ENV{GIT_AUTHOR_NAME} = $ENV{GIT_COMMITTER_NAME} = $node->{User};
+    $ENV{GIT_AUTHOR_DATE} = $ENV{GIT_COMMITTER_DATE} = $node->{Time};
+
+    my ($id, $rev, $type, $name) = @$node{qw(Id Rev Type Name)};
+    my $title = $name->[0] || '';
+    my $message = "($type) ${id}0$rev";
+    $message .= " - $title" if $title;
+        
+    $self->git->add('.');
+    $self->git->commit({all => 1, message => $message});
 }
 
 sub node_dir {
