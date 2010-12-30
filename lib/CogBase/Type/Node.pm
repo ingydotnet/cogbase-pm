@@ -7,6 +7,6 @@ has UUID => (is => 'rw');
 has Type => (is => 'rw');
 has Time => (is => 'rw');
 has User => (is => 'rw');
-has Gone => (is => 'rw', default => 0);
+# has Gone => (is => 'rw', default => 0);
 
 1;

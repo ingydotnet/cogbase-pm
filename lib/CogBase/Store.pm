@@ -6,6 +6,7 @@ use Convert::Base32;
 use IO::All;
 use Time::ParseDate;
 use CogBase::Schema;
+use YAML::XS;
 
 use XXX;
 
@@ -67,7 +68,7 @@ sub _text_to_node {
 # the node must be 'put' to actually store it.
 sub add {
     my $self = shift;
-    my $type = shift;
+    my $type = shift or die;
     my $schema = $self->schemata->{$type} ||= $self->_get_schema_node($type);
     my ($id, $uuid) = $self->new_id_pair;
     my $node = $schema->class->new(
@@ -77,7 +78,8 @@ sub add {
         Type => $type,
         @_,
     );
-    $self->write($node); return $node;
+    $self->write($node);
+    return $node;
 }
 
 # retrieve a node object from an id. return undef if not found.
@@ -133,12 +135,8 @@ sub new_id_pair {
 sub read {
     my $self = shift;
     my $id = shift;
-    my $node = {};
     my $dir = $self->node_dir($id);
-    for my $io (io->dir($dir)->all) {
-        $node->{$io->filename} = $io->all;
-    }
-    return $node;
+    YAML::XS::LoadFile("$dir/node.yaml");
 }
 
 sub write {
@@ -147,28 +145,11 @@ sub write {
     my $time = $node->Time;
     my $id = $node->Id or die;
     my $dir = $self->node_dir($id);
-    for my $key (keys %$node) {
-        my $value = $node->{$key};
-        if (not defined $value) {
-            next;
-        }
-        if (not ref($value)) {
-            my $file = io->file("$dir/$key");
-            $file->print($value);
-            $file->close;
-            $file->utime($time);
-        }
-        elsif (ref($value) eq 'ARRAY') {
-            my $i = 0;
-            for (; $i < @$value; $i++) {
-                io->file("$dir/$key/$i")->assert->print($value->[$i]);
-            }
-            io->link("$dir/$key/_")->assert->symlink("$i");
-        }
-        else {
-            die;
-        }
-    }
+    my $blob = {%$node};
+    my $file = io->file("$dir/node.yaml");
+    $file->print( YAML::XS::Dump($blob) );
+    $file->close;
+    $file->utime($time);
 }
 
 sub commit {
@@ -190,7 +171,7 @@ sub commit {
 sub node_dir {
     my $self = shift;
     my $id = shift;
-    return join '/', $self->root, 'node', (($id) =~ /(..)/g), '_';
+    return join '/', $self->root, 'node', (($id) =~ /(..)/g);
 }
 
 sub lock {}
