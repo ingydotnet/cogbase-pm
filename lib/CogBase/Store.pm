@@ -6,15 +6,19 @@ use Convert::Base32;
 use IO::All;
 use Time::ParseDate;
 use CogBase::Schema;
+use CogBase::Index;
 use YAML::XS;
 
-# use Devel::XRay;
 use XXX;
 
 has root => ( is => 'ro', required => 1 );
 has git => ( is => 'ro', builder => sub {
     my $self = shift;
     Git::Wrapper->new($self->root);
+});
+has index => ( is => 'ro', builder => sub {
+    my $self = shift;
+    CogBase::Index->new(root => $self->root);
 });
 has schemata => ( is => 'ro', default => sub{{}} );
 
@@ -30,6 +34,7 @@ sub init {
 
     io("$root/node")->mkdir or die;
     io("$root/index")->mkdir or die;
+    io("$root/index/schema")->mkdir or die;
     io("$root/cache")->mkdir or die;
     io->link("$root/cogbase")->symlink(".git");
 
@@ -51,8 +56,8 @@ cache
 sub get_schema_node {
     my $self = shift;
     my $type = shift;
-    my $id = $self->type_to_id($type);
-    my $node = $self->get($id);
+    my $id = $self->index->schema($type);
+    my $node = $self->get($id) or die "No Schema node for type '$type'";
     eval $node->perl or die $@;
     return $node;
 }
@@ -94,7 +99,7 @@ sub add_schema {
 # retrieve a node object from an id. return undef if not found.
 sub get {
     my $self = shift;
-    my $id = shift;
+    my $id = shift or die;
     my $dir = $self->node_dir($id);
     return unless -e $dir;
     my $hash = $self->read($id);
@@ -113,9 +118,17 @@ sub put {
     $node->Rev($prev->Rev + 1);
     $self->lock;
     $self->write($node);
-#     $self->index($node);
+    $self->write_index($node);
     $self->commit($node);
     $self->unlock;
+}
+
+sub write_index {
+    my $self = shift;
+    my $node = shift;
+    if ($node->Type eq 'Schema') {
+        $self->index->schema($node->type, $node->Id);
+    }
 }
 
 BEGIN { srand() }
