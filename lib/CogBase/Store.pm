@@ -8,6 +8,7 @@ use Time::ParseDate;
 use CogBase::Schema;
 use YAML::XS;
 
+# use Devel::XRay;
 use XXX;
 
 has root => ( is => 'ro', required => 1 );
@@ -47,21 +48,13 @@ cache
     $self->git->init();
 }
 
-sub _node_to_text {
+sub get_schema_node {
     my $self = shift;
-    my $node = shift;
-    my $type = $node->Type;
-    my $schema = $self->_get_schema_node($type)
-        or die;
-    my $fields = $schema->fields();
-    my $text = '';
-    for my $field (@$fields) {
-
-    }
-    return XXX $text;
-}
-
-sub _text_to_node {
+    my $type = shift;
+    my $id = $self->type_to_id($type);
+    my $node = $self->get($id);
+    eval $node->perl or die $@;
+    return $node;
 }
 
 # adds a new node to the cogbase of a given type.
@@ -69,13 +62,29 @@ sub _text_to_node {
 sub add {
     my $self = shift;
     my $type = shift or die;
-    my $schema = $self->schemata->{$type} ||= $self->_get_schema_node($type);
+    my $schema = $self->schemata->{$type} ||= $self->get_schema_node($type);
     my ($id, $uuid) = $self->new_id_pair;
     my $node = $schema->class->new(
         Id => $id,
         UUID => $uuid,
         Rev => 0,
         Type => $type,
+        @_,
+    );
+    $self->write($node);
+    return $node;
+}
+
+sub add_schema {
+    my $self = shift;
+    my $type = shift or die;
+    my ($id, $uuid) = $self->new_id_pair;
+    my $node = CogBase::Schema->new(
+        Id => $id,
+        Type => 'Schema',
+        type => $type,
+        Rev  => 0,
+        UUID => $uuid,
         @_,
     );
     $self->write($node);
@@ -90,7 +99,8 @@ sub get {
     return unless -e $dir;
     my $hash = $self->read($id);
     my $type = $hash->{Type};
-    my $schema = $self->schemata->{$type} ||= $self->_get_schema_node($type);
+    return $hash if $type eq 'Schema';
+    my $schema = $self->schemata->{$type} ||= $self->get_schema_node($type);
     my $node = $schema->class->new(%$hash);
     return $node;
 }
@@ -145,11 +155,9 @@ sub write {
     my $time = $node->Time;
     my $id = $node->Id or die;
     my $dir = $self->node_dir($id);
-    my $blob = {%$node};
-    my $file = io->file("$dir/node.yaml");
-    $file->print( YAML::XS::Dump($blob) );
-    $file->close;
-    $file->utime($time);
+    my $blob = $node->Type eq 'Schema' ? $node : {%$node};
+    YAML::XS::DumpFile("$dir/node.yaml", $blob);
+    io->file("$dir/node.yaml")->utime($time);
 }
 
 sub commit {

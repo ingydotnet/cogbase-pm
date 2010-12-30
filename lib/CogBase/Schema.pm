@@ -5,12 +5,10 @@ my $classes = {};
 
 extends 'CogBase::Type::Node';
 
-use XXX;
-
 has type => ( is => 'ro' );
-has base => ( is => 'ro' );
+has base => ( is => 'rw' );
 has fields => ( is => 'ro', default => sub{[]} );
-has class => ( is => 'ro', builder => sub {
+has class => ( is => 'ro', lazy => 1, builder => sub {
     my $self = shift;
     "CogNode::Type::" . $self->type;
 });
@@ -46,7 +44,7 @@ use Mouse;
 has name => ( is => 'ro' );
 has type => ( is => 'ro' );
 has size => ( is => 'ro' );
-has enum => ( is => 'ro' );
+has enum => ( is => 'ro', default => sub{[]} );
 has default => ( is => 'ro' );
 
 1;
